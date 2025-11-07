@@ -24,7 +24,7 @@
     mov al, [the_secret]  
     int 0x10             ;Print the 'X' to the screen
 
-    jmp $   ;infinite loop 
+    jmp $   ; infinite loop 
 
     the_secret:
         db "X"
