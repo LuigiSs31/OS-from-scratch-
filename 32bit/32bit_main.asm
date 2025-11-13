@@ -7,11 +7,12 @@
 
     call switch_to_pm
     jmp $ ; this shoul'nt excecute
-
-%include "./32bit_functions/32bit-gdt.asm"
-%include "./32bit_functions/32bit-print.asm"
+    
 %include "../bootsector/bootsector-functions/boot_sect_print.asm"
 %include "32bit_switch.asm"
+%include "./32bit_functions/32bit-gdt.asm"
+%include "./32bit_functions/32bit-print.asm"
+
 
 [bits 32]
 BEGIN_PM:

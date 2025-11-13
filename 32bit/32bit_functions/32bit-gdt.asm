@@ -6,7 +6,7 @@ gdt_start:
 ;GDT code segment, base = 0x00000000, length = 0xfffff
 
 gdt_code:
-    dw 0xfffff ;length
+    dw 0xffff ;length
     dw 0x0 ;segment base, bits 0-15
     db 0x0 ;segment base, bits 16-23
     db 10011010b ; flags (8 bits)
@@ -16,7 +16,7 @@ gdt_code:
 ; GDT for data segment, base and length same as code segment 
 
 gdt_data:
-    dw 0xfffff
+    dw 0xffff
     dw 0x0
     db 0x0
     db 10010010b

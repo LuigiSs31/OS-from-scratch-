@@ -19,4 +19,4 @@ init_pm: ; now switch to 32 bit instruction
     mov ebp, 0x90000 ; update the stack on top od the free space
     mov esp,ebp
 
-    vall BEGIN_PM ; call a well known label with useful code 
+    call BEGIN_PM ; call a well known label with useful code 
