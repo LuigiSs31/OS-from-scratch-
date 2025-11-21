@@ -23,6 +23,12 @@ config.json
 *.exe
 *.bin
 
+# Ignore the temporary source folder if it was created inside the repo
+src_toolchain/
+
+# Ignore system artifacts
+.DS_Store
+
 # --- Dependency Directories ---
 # These are managed by package managers (like npm, pip, composer).
 # Committing these inflates the repo; others can install them.
