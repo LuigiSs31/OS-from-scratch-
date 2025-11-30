@@ -1,5 +1,6 @@
 #include "screen.h"
 #include "ports.h"
+#include "../kernel/util.h"
 
 /* Declaration of private functions */
 int get_cursor_offset();
@@ -42,6 +43,18 @@ void kprint(char *message) {
     kprint_at(message, -1, -1);
 }
 
+void clear_screen() {
+    int screen_size = MAX_COLS * MAX_ROWS;
+    int i;
+    char *screen = (char*) VIDEO_ADDRESS;
+
+    for (i = 0; i < screen_size; i++) {
+        screen[i*2] = ' ';
+        screen[i*2+1] = WHITE_ON_BLACK;
+    }
+    set_cursor_offset(get_offset(0, 0));
+}
+
 
 /**********************************************************
  * Private kernel functions                               *
@@ -79,6 +92,27 @@ int print_char(char c, int col, int row, char attr) {
         vidmem[offset+1] = attr;
         offset += 2;
     }
+
+    /* Check if the offset is over screen size and scroll */
+    if (offset >= MAX_ROWS * MAX_COLS * 2) {
+        int i;
+        for (i = 1; i < MAX_ROWS; i++) {
+            /* FIXED: Cast the calculated integer addresses to (char*) */
+            memory_copy(
+                (char*)(get_offset(0, i) + VIDEO_ADDRESS),
+                (char*)(get_offset(0, i-1) + VIDEO_ADDRESS),
+                MAX_COLS * 2
+            );
+        }
+
+        /* Blank last line */
+        /* FIXED: Cast to (char*) */
+        char *last_line = (char*) (get_offset(0, MAX_ROWS-1) + VIDEO_ADDRESS);
+        for (i = 0; i < MAX_COLS * 2; i++) last_line[i] = 0;
+        
+        offset -= 2 * MAX_COLS;
+    }
+
     set_cursor_offset(offset);
     return offset;
 }
@@ -103,19 +137,6 @@ void set_cursor_offset(int offset) {
     port_byte_out(REG_SCREEN_CTRL, 15);
     port_byte_out(REG_SCREEN_DATA, (unsigned char)(offset & 0xff));
 }
-
-void clear_screen() {
-    int screen_size = MAX_COLS * MAX_ROWS;
-    int i;
-    char *screen = VIDEO_ADDRESS;
-
-    for (i = 0; i < screen_size; i++) {
-        screen[i*2] = ' ';
-        screen[i*2+1] = WHITE_ON_BLACK;
-    }
-    set_cursor_offset(get_offset(0, 0));
-}
-
 
 int get_offset(int col, int row) { return 2 * (row * MAX_COLS + col); }
 int get_offset_row(int offset) { return offset / (2 * MAX_COLS); }

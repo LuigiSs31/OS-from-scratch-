@@ -1,4 +1,3 @@
-# Variables to make things easier to change
 CC = i386-elf-gcc
 LD = i386-elf-ld
 CFLAGS = -ffreestanding -c
@@ -12,11 +11,14 @@ run: os-image.bin
 os-image.bin: kernel/bootsect.bin kernel/kernel.bin
 	cat kernel/bootsect.bin kernel/kernel.bin > kernel/os-image.bin
 
-# STEP 16: Link screen.o AND ports.o
-kernel/kernel.bin: kernel/kernel_entry.o kernel/kernel.o drivers/ports.o drivers/screen.o
+# ADDED kernel/util.o here
+kernel/kernel.bin: kernel/kernel_entry.o kernel/kernel.o drivers/ports.o drivers/screen.o kernel/util.o
 	$(LD) -o $@ $(LDFLAGS) $^
 
 kernel/kernel.o: kernel/kernel.c
+	$(CC) $(CFLAGS) $< -o $@
+
+kernel/util.o: kernel/util.c
 	$(CC) $(CFLAGS) $< -o $@
 
 drivers/ports.o: drivers/ports.c
@@ -32,4 +34,4 @@ kernel/bootsect.bin: boot/bootsect.asm
 	nasm $< -f bin -o $@ -I boot/
 
 clean:
-	rm -f kernel/.bin kernel/.o drivers/*.o
+	rm -f kernel/*.bin kernel/*.o drivers/*.o kernel/*.o
