@@ -1,37 +1,46 @@
-CC = i386-elf-gcc
-LD = i386-elf-ld
-CFLAGS = -ffreestanding -c
-LDFLAGS = -Ttext 0x1000 --oformat binary
+C_SOURCES = $(wildcard kernel/*.c drivers/*.c cpu/*.c)
+HEADERS = $(wildcard kernel/*.h drivers/*.h cpu/*.h)
+# Nice syntax for file extension replacement
+OBJ = ${C_SOURCES:.c=.o cpu/interrupt.o} 
 
-all: os-image.bin
+# Change this if your cross-compiler is somewhere else
+CC = /usr/local/i386elfgcc/bin/i386-elf-gcc
+GDB = /usr/local/i386elfgcc/bin/i386-elf-gdb
+# -g: Use debugging symbols in gcc
+CFLAGS = -g
+
+# First rule is run by default
+os-image.bin: boot/bootsect.bin kernel.bin
+	cat $^ > os-image.bin
+
+# '--oformat binary' deletes all symbols as a collateral, so we don't need
+# to 'strip' them manually on this case
+kernel.bin: boot/kernel_entry.o ${OBJ}
+	i386-elf-ld -o $@ -Ttext 0x1000 $^ --oformat binary
+
+# Used for debugging purposes
+kernel.elf: boot/kernel_entry.o ${OBJ}
+	i386-elf-ld -o $@ -Ttext 0x1000 $^ 
 
 run: os-image.bin
-	qemu-system-i386 -fda kernel/os-image.bin
+	qemu-system-i386 -fda os-image.bin
 
-os-image.bin: kernel/bootsect.bin kernel/kernel.bin
-	cat kernel/bootsect.bin kernel/kernel.bin > kernel/os-image.bin
+# Open the connection to qemu and load our kernel-object file with symbols
+debug: os-image.bin kernel.elf
+	qemu-system-i386 -s -fda os-image.bin -d guest_errors,int &
+	${GDB} -ex "target remote localhost:1234" -ex "symbol-file kernel.elf"
 
-# ADDED kernel/util.o here
-kernel/kernel.bin: kernel/kernel_entry.o kernel/kernel.o drivers/ports.o drivers/screen.o kernel/util.o
-	$(LD) -o $@ $(LDFLAGS) $^
+# Generic rules for wildcards
+# To make an object, always compile from its .c
+%.o: %.c ${HEADERS}
+	${CC} ${CFLAGS} -ffreestanding -c $< -o $@
 
-kernel/kernel.o: kernel/kernel.c
-	$(CC) $(CFLAGS) $< -o $@
+%.o: %.asm
+	nasm $< -f elf -o $@
 
-kernel/util.o: kernel/util.c
-	$(CC) $(CFLAGS) $< -o $@
-
-drivers/ports.o: drivers/ports.c
-	$(CC) $(CFLAGS) $< -o $@
-
-drivers/screen.o: drivers/screen.c
-	$(CC) $(CFLAGS) $< -o $@
-
-kernel/kernel_entry.o: boot/kernel_entry.asm
-	nasm $< -f elf -o $@ -I boot/
-
-kernel/bootsect.bin: boot/bootsect.asm
-	nasm $< -f bin -o $@ -I boot/
+%.bin: %.asm
+	nasm $< -f bin -o $@
 
 clean:
-	rm -f kernel/*.bin kernel/*.o drivers/*.o kernel/*.o
+	rm -rf *.bin *.dis *.o os-image.bin *.elf
+	rm -rf kernel/*.o boot/*.bin drivers/*.o boot/*.o cpu/*.o
